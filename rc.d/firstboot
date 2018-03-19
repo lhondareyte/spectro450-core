@@ -11,6 +11,10 @@ desc="Setting-up spectro450 appliance"
 start_cmd="firstboot_start" 
 stop_cmd=":"
 rcvar="firstboot_enable"
+lbx=/usr/local/libexec/spectro450/
+shr=/usr/local/share/spectro450/
+
+export PATH=$PATH:$lbx
 
 firstboot_start () 
 {
@@ -26,6 +30,11 @@ firstboot_start ()
 		/usr/sbin/pkg lock -y spectro450
 	fi
 	#
+	# Install confile
+	if [ ! -f /etc/spectro450.conf ] ; then
+		install -m 644 ${shr}/spectro450.conf /etc
+	fi
+	#
 	# Cleaning /etc/rc.conf
 	sed -i'' -e '/^growfs_enable/d' /etc/rc.conf
 	sed -i'' -e '/^firstboot_enable/d' /etc/rc.conf
@@ -36,7 +45,7 @@ firstboot_start ()
 	if [ "$f_mount" == "ro" ] ; then
         	mount -oro /
 	fi
-	saveconfig rc.conf
+	saveconfig rc.conf spectro450.conf
 	reboot
 }
 
