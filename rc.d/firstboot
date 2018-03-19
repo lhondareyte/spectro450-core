@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# PROVIDE: firtboot
+# BEFORE: LOGIN
+# KEYWORD: firstboot
+
+. /etc/rc.subr
+
+name="firsboot"
+desc="Setting-up spectro450 appliance"                 
+start_cmd="firstboot_start" 
+stop_cmd=":"
+rcvar="firstboot_enable"
+
+firstboot_start () 
+{
+	# mount / rw if needed
+	f_mount=$(mount -p / | awk '{print $4}')
+	if [ "$f_mount" == "ro" ] ; then
+        	mount -orw /
+	fi
+	# 
+        # Locking spectro450 package
+	pkg info spectro450 > /dev/null 2>&1
+	if [ $? -eq 0 ] ; then
+		/usr/sbin/pkg lock -y spectro450
+	fi
+	#
+	# Cleaning /etc/rc.conf
+	sed -i'' -e '/^growfs_enable/d' /etc/rc.conf
+	sed -i'' -e '/^firstboot_enable/d' /etc/rc.conf
+	sed -i'' -e '/^spectro450_enable/d' /etc/rc.conf
+	echo "spectro450_enable=\"YES\"" >> /etc/rc.conf
+	#
+	#
+	if [ "$f_mount" == "ro" ] ; then
+        	mount -oro /
+	fi
+	saveconfig rc.conf
+	reboot
+}
+
+load_rc_config $name
+run_rc_command "$1"
