@@ -34,12 +34,37 @@ firstboot_start ()
 	if [ ! -f /etc/spectro450.conf ] ; then
 		install -m 644 ${shr}/spectro450.conf /etc
 	fi
+	# 
+	# Setting kernel stuffs
+	ldcf=/boot/loader.conf
+        echo "autoboot_delay=\"0\"" >> $ldcf
+	# Do not wait for USB devices
+	echo "hw.usb.no_boot_wait=1" >> $ldcf
+        echo "hw.usb.no_shutdown_wait=1" >> $ldcf
+        # Disable Spectre/Meltdown patch to avoid performance problems
+        echo "vm.pmap.pti=0" >> $ldcf
+	sctl=/etc/sysctl.conf
+        # workaround pcm dead bug
+        echo "dev.hdac.0.polling=1" >> $sctl
+        # Set AC97 header as default PCM device
+        echo "hw.snd.default_unit=1" >> $sctl
+        # Set PCM device output level
+        echo "hw.snd.vpc_0db=10" >> $sctl
 	#
-	# Cleaning /etc/rc.conf
-	sed -i'' -e '/^growfs_enable/d' /etc/rc.conf
-	sed -i'' -e '/^firstboot_enable/d' /etc/rc.conf
-	sed -i'' -e '/^spectro450_enable/d' /etc/rc.conf
-	echo "spectro450_enable=\"YES\"" >> /etc/rc.conf
+	# Setting /etc/rc.conf
+	rcf="/etc/rc.conf"
+	sed -i'' -e '/^growfs_enable/d' $rcf
+	sed -i'' -e '/^firstboot_enable/d' $rcf
+	sed -i'' -e '/^spectro450_enable/d' $rcf
+	sed -i'' -e '/^hostname/d' $rcf
+	sed -i'' -e '/^sendmail/d' $rcf
+	sed -i'' -e '/^cron_/d' $rcf
+	echo "hostname=spectro450" >> $rcf
+	echo "spectro450_enable=\"YES\"" >> $rcf
+        echo "cron_enable=\"NO\"" >> $rcf
+        echo "sendmail_submit_enable=\"NO\"" >> $rcf
+        echo "sendmail_outbound_enable=\"NO\"" >> $rcf
+        echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
 	#
 	#
 	if [ "$f_mount" == "ro" ] ; then
