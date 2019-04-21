@@ -1,23 +1,20 @@
 #!/bin/sh
 #
-# PROVIDE: firtboot
-# BEFORE: LOGIN
-# KEYWORD: firstboot
+libexec=/usr/local/libexec/spectro450/
 
-. /etc/rc.subr
-
-name="firsboot"
-desc="Setting-up spectro450 appliance"                 
-start_cmd="firstboot_start" 
-stop_cmd=":"
-rcvar="firstboot_enable"
-lbx=/usr/local/libexec/spectro450/
-shr=/usr/local/share/spectro450/
-
-export PATH=$PATH:$lbx
+grow_data_fs () {
+	umount /Applications
+	if [ -f /etc/nanobsd.conf ] ; then
+		. /etc/nanobsd.conf
+	fi
+	gpart resize -i 4 -a 4k $NANO_DRIVE
+	newfs -t -L SpectrO /dev/${NANO_DRIVE}s4
+	mount /Applications
+}
 
 firstboot_start () 
 {
+	printf "Setting up Spectro450..."
 	# mount / rw if needed
 	f_mount=$(mount -p / | awk '{print $4}')
 	if [ "$f_mount" == "ro" ] ; then
@@ -67,12 +64,15 @@ firstboot_start ()
         echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
 	#
 	#
+	grow_data_fs
+	rm -f /firstboot
+	sync;sync;sync
 	if [ "$f_mount" == "ro" ] ; then
-        	mount -oro /
+        	mount -o ro /
 	fi
-	saveconfig rc.conf spectro450.conf
+	${libexec}/saveconfig rc.conf spectro450.conf sysctl.conf
+	echo "done."
 	reboot
 }
 
-load_rc_config $name
-run_rc_command "$1"
+firstboot_start

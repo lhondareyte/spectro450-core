@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# PROVIDE: spectro450
+# BEFORE: LOGIN
+
+. /etc/rc.subr
+
+name="spectro450"
+desc="Spectro450 appliance"                 
+start_cmd="spectro450_start" 
+stop_cmd="spectro450_stop" 
+rcvar="spectro450_enable"
+libexec=/usr/local/libexec/spectro450/
+share=/usr/local/share/spectro450/
+
+spectro450_start () 
+{
+	if [ -f /firstboot ] ; then
+		${libexec}/firstboot
+	fi
+	if [ ! -f /etc/spectro450.conf ] ; then
+		install -m 644 ${share}/spectro450.conf /etc
+		saveconfig spectro450.conf
+	fi
+	${libexec}/spectro450 -d
+}
+
+spectro450_stop () 
+{
+	kill $(pgrep $(basename $prg))
+	saveconfig spectro450.conf
+}
+
+load_rc_config $name
+run_rc_command "$1"
