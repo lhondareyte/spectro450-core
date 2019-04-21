@@ -3,12 +3,15 @@
 libexec=/usr/local/libexec/spectro450/
 
 grow_data_fs () {
+	sysctl kern.geom.debugflags=16
 	umount /Applications
 	if [ -f /etc/nanobsd.conf ] ; then
 		. /etc/nanobsd.conf
 	fi
 	gpart resize -i 4 -a 4k $NANO_RDRIVE
+	sleep 3
 	newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
+	rc=$?
 	mount /Applications
 }
 
@@ -57,7 +60,6 @@ firstboot_start ()
 	sed -i'' -e '/^sendmail/d' $rcf
 	sed -i'' -e '/^cron_/d' $rcf
 	echo "hostname=spectro450" >> $rcf
-	echo "spectro450_enable=\"YES\"" >> $rcf
         echo "cron_enable=\"NO\"" >> $rcf
         echo "sendmail_submit_enable=\"NO\"" >> $rcf
         echo "sendmail_outbound_enable=\"NO\"" >> $rcf
@@ -65,15 +67,21 @@ firstboot_start ()
 	#
 	#
 	grow_data_fs
-	rm -f /firstboot
+	if [ $? -eq 0 ] ; then
+		echo "spectro450_enable=\"YES\"" >> $rcf
+		rm -f /firstboot
+		sleep 2
+		echo "done."
+	else
+		echo "failed."
+	fi
 	sync;sync;sync
 	if [ "$f_mount" == "ro" ] ; then
         	mount -o ro /
 	fi
 	${libexec}/saveconfig rc.conf spectro450.conf sysctl.conf
-	sleep 2
-	echo "done."
 	reboot
+
 }
 
 firstboot_start
