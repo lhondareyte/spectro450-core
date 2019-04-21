@@ -10,8 +10,8 @@ desc="Spectro450 appliance"
 start_cmd="spectro450_start" 
 stop_cmd="spectro450_stop" 
 rcvar="spectro450_enable"
-libexec=/usr/local/libexec/spectro450/
-share=/usr/local/share/spectro450/
+libexec="/usr/local/libexec/spectro450"
+share="/usr/local/share/spectro450"
 
 spectro450_start () 
 {
@@ -20,7 +20,7 @@ spectro450_start ()
 	fi
 	if [ ! -f /etc/spectro450.conf ] ; then
 		install -m 644 ${share}/spectro450.conf /etc
-		saveconfig spectro450.conf
+		${libexec}/saveconfig spectro450.conf
 	fi
 	${libexec}/spectro450 -d
 }

@@ -7,8 +7,8 @@ grow_data_fs () {
 	if [ -f /etc/nanobsd.conf ] ; then
 		. /etc/nanobsd.conf
 	fi
-	gpart resize -i 4 -a 4k $NANO_DRIVE
-	newfs -t -L SpectrO /dev/${NANO_DRIVE}s4
+	gpart resize -i 4 -a 4k $NANO_RDRIVE
+	newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
 	mount /Applications
 }
 
@@ -71,6 +71,7 @@ firstboot_start ()
         	mount -o ro /
 	fi
 	${libexec}/saveconfig rc.conf spectro450.conf sysctl.conf
+	sleep 2
 	echo "done."
 	reboot
 }
