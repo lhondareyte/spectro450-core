@@ -72,6 +72,8 @@ sys_config () {
 
 firstboot_start () 
 {
+	grow_data_fs
+	sleep 2
 	printf "Setting up Spectro450..."
 	# mount / rw if needed
 	f_mount=$(mount -p / | awk '{print $4}')
@@ -82,7 +84,7 @@ firstboot_start ()
         # Locking application package
 	pkg info $app > /dev/null 2>&1
 	if [ $? -eq 0 ] ; then
-		/usr/sbin/pkg lock -y $app
+		/usr/sbin/pkg lock -y $app > /dev/null 2>&1
 	fi
 	#
 	# Install configuration file
@@ -91,7 +93,8 @@ firstboot_start ()
 	fi
 	#
 	sys_config
-	grow_data_fs
+	add_nullfs
+	${libexec}/saveconfig rc.conf ${app}.conf sysctl.conf
 	if [ $? -eq 0 ] ; then
 		echo "${app}_enable=\"YES\"" >> $rcf
 		rm -f /firstboot
@@ -99,11 +102,9 @@ firstboot_start ()
 	else
 		echo "failed."
 	fi
-	sleep 2
-	add_nullfs
 	sync;sync;sync
         mount -o ro /
-	${libexec}/saveconfig rc.conf ${app}.conf sysctl.conf
+	sleep 1
 	reboot
 }
 

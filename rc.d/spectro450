@@ -12,9 +12,14 @@ stop_cmd="app_stop"
 rcvar="${name}_enable"
 libexec="/usr/local/libexec/${name}"
 share="/usr/local/share/${name}"
+pid=$(pgrep $(basename $name))
 
 app_start () 
 {
+	if [ ! -z $pid ] ; then
+		echo "$name is already running."
+		return 0
+	fi
 	if [ -f /firstboot ] ; then
 		${libexec}/firstboot
 	fi
@@ -29,8 +34,12 @@ app_start ()
 
 app_stop () 
 {
-	kill $(pgrep $(basename $name))
-	${libexec}/saveconfig ${name}.conf
+	if [ -z $pid ] ; then
+		echo "$name is already stopped."
+	else
+		kill $pid
+		${libexec}/saveconfig ${name}.conf
+	fi
 }
 
 load_rc_config $name
