@@ -1,49 +1,18 @@
 #!/bin/sh
 #
 libexec=/usr/local/libexec/spectro450/
-FSTAB="/conf/base/etc/fstab"
-NANO_DATADIR=/Data
 
 grow_data_fs () {
-<<<<<<< HEAD
-=======
 	sysctl kern.geom.debugflags=16
 	umount /Applications
->>>>>>> 427e2c18df94a07e276ecaee987a77dd3fe0c35e
 	if [ -f /etc/nanobsd.conf ] ; then
 		. /etc/nanobsd.conf
-	else
-		return 0
 	fi
-	umount $NANO_DATADIR
-	sysctl kern.geom.debugflags=16
-	sleep 2
 	gpart resize -i 4 -a 4k $NANO_RDRIVE
-<<<<<<< HEAD
-	rc=$?
-	if [ $rc -eq 0 ] ; then
-		sleep 2
-		newfs -t -L SpectrOs4 /dev/${NANO_RDRIVE}s4
-		rc=$?
-	fi
-	return $rc
-}
-
-add_nullfs () {
-	if [ -e /dev/ufs/SpectrOs4 ] ; then
-		umount $NANO_DATADIR
-		mount /dev/ufs/SpectrOs4 /mnt
-		mkdir -p /mnt/Applications /mnt/Library
-		printf "/Data/Applications\t/Applications\tnullfs\tro 0 0\n" >> $FSTAB
-		printf "/Data/Library\t/Library\tnullfs\tro 0 0\n" >> $FSTAB
-		umount /mnt && mount /Data
-	fi
-=======
 	sleep 3
 	newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
 	rc=$?
 	mount /Applications
->>>>>>> 427e2c18df94a07e276ecaee987a77dd3fe0c35e
 }
 
 firstboot_start () 
@@ -96,7 +65,7 @@ firstboot_start ()
         echo "sendmail_outbound_enable=\"NO\"" >> $rcf
         echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
 	#
-	# Growing /Data
+	#
 	grow_data_fs
 	if [ $? -eq 0 ] ; then
 		echo "spectro450_enable=\"YES\"" >> $rcf
@@ -104,14 +73,9 @@ firstboot_start ()
 		sleep 2
 		echo "done."
 	else
-<<<<<<< HEAD
-		sed -i'' -e "/^\$NANO_DATADIR/d" $FSTAB
-=======
->>>>>>> 427e2c18df94a07e276ecaee987a77dd3fe0c35e
 		echo "failed."
 	fi
 	sync;sync;sync
-	add_nullfs
 	if [ "$f_mount" == "ro" ] ; then
         	mount -o ro /
 	fi
