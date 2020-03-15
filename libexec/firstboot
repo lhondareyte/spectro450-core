@@ -1,6 +1,9 @@
 #!/bin/sh
 #
-libexec=/usr/local/libexec/spectro450/
+app="spectro450"
+libexec=/usr/local/libexec/${app}/
+share=/usr/local/share/${app}/
+fstab="/conf/base/etc/fstab"
 
 if [ -f /etc/nanobsd.conf ] ; then
 	. /etc/nanobsd.conf
@@ -14,7 +17,7 @@ grow_data_fs () {
 		umount /Data
 		gpart resize -i 4 -a 4k $NANO_RDRIVE
 		sleep 3
-		newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
+		newfs -t -L SpectrOs4 /dev/${NANO_RDRIVE}s4
 		rc=$?
 		mount /Data
 	fi
@@ -26,8 +29,11 @@ add_nullfs () {
                 umount $NANO_DATADIR
                 mount /dev/ufs/SpectrOs4 /mnt
                 mkdir -p /mnt/Applications /mnt/Library
-                printf "/Data/Applications\t/Applications\tnullfs\tro 0 0\n" >> $FSTAB
-                printf "/Data/Library\t/Library\tnullfs\tro 0 0\n" >> $FSTAB
+		for d in Applications Library
+		do
+			mkdir /$d
+			printf "/Data/$d\t/$d\tnullfs ro 0 0\n"
+		done >> $fstab
                 umount /mnt 
                 mount $NANO_DATADIR
 		mount /Applications
@@ -62,7 +68,7 @@ sys_config () {
 		grep -v "${s}" $rcf > /tmp/out.$$ 
 		mv /tmp/out.$$ $rcf
 	done
-        echo "hostname=spectro450" >> $rcf
+        echo "hostname=$app" >> $rcf
         echo "cron_enable=\"NO\"" >> $rcf
         echo "sendmail_submit_enable=\"NO\"" >> $rcf
         echo "sendmail_outbound_enable=\"NO\"" >> $rcf
@@ -78,33 +84,33 @@ firstboot_start ()
         	mount -orw /
 	fi
 	# 
-        # Locking spectro450 package
-	pkg info spectro450 > /dev/null 2>&1
+        # Locking application package
+	pkg info $app > /dev/null 2>&1
 	if [ $? -eq 0 ] ; then
-		/usr/sbin/pkg lock -y spectro450
+		/usr/sbin/pkg lock -y $app
 	fi
 	#
 	# Install confile
-	if [ ! -f /etc/spectro450.conf ] ; then
-		install -m 644 ${shr}/spectro450.conf /etc
+	if ([ ! -f /etc/${app}.conf ] && [ -f ${share}/${app}.conf ]) ; then
+		install -m 644 ${share}/${app}.conf /etc
 	fi
 	#
 	sys_config
 	grow_data_fs
 	if [ $? -eq 0 ] ; then
-		echo "spectro450_enable=\"YES\"" >> $rcf
+		echo "${app}_enable=\"YES\"" >> $rcf
 		rm -f /firstboot
-		sleep 2
 		echo "done."
 	else
 		echo "failed."
 	fi
+	sleep 2
 	add_nullfs
 	sync;sync;sync
 	if [ "$f_mount" == "ro" ] ; then
         	mount -o ro /
 	fi
-	${libexec}/saveconfig rc.conf spectro450.conf sysctl.conf
+	${libexec}/saveconfig rc.conf ${app}.conf sysctl.conf
 	reboot
 
 }
