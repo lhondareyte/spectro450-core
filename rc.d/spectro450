@@ -7,28 +7,30 @@
 
 name="spectro450"
 desc="Spectro450 appliance"                 
-start_cmd="spectro450_start" 
-stop_cmd="spectro450_stop" 
-rcvar="spectro450_enable"
-libexec="/usr/local/libexec/spectro450"
-share="/usr/local/share/spectro450"
+start_cmd="app_start" 
+stop_cmd="app_stop" 
+rcvar="${name}_enable"
+libexec="/usr/local/libexec/${name}"
+share="/usr/local/share/${name}"
 
-spectro450_start () 
+app_start () 
 {
 	if [ -f /firstboot ] ; then
 		${libexec}/firstboot
 	fi
-	if [ ! -f /etc/spectro450.conf ] ; then
-		install -m 644 ${share}/spectro450.conf /etc
-		${libexec}/saveconfig spectro450.conf
+	if ([ ! -f /firstboot ] && [ -f ${share}/${name}.conf ])  ; then
+		cp ${share}/${name}.conf /etc
+		${libexec}/saveconfig ${name}.conf
 	fi
-	${libexec}/spectro450 -d
+	if [ -x ${libexec}/${name} ] ; then
+		${libexec}/${name} -d
+	fi
 }
 
-spectro450_stop () 
+app_stop () 
 {
-	kill $(pgrep $(basename $prg))
-	saveconfig spectro450.conf
+	kill $(pgrep $(basename $name))
+	${libexec}/saveconfig ${name}.conf
 }
 
 load_rc_config $name
