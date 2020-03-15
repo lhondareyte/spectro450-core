@@ -28,16 +28,11 @@ add_nullfs () {
         if [ -e /dev/ufs/SpectrOs4 ] ; then
                 umount $NANO_DATADIR
                 mount /dev/ufs/SpectrOs4 /mnt
-                mkdir -p /mnt/Applications /mnt/Library
 		for d in Applications Library
 		do
-			mkdir /$d
+			mkdir -p /mnt/$d /$d
 			printf "/Data/$d\t/$d\tnullfs ro 0 0\n"
 		done >> $fstab
-                umount /mnt 
-                mount $NANO_DATADIR
-		mount /Applications
-		mount /Library
         fi
 }
 
@@ -90,7 +85,7 @@ firstboot_start ()
 		/usr/sbin/pkg lock -y $app
 	fi
 	#
-	# Install confile
+	# Install configuration file
 	if ([ ! -f /etc/${app}.conf ] && [ -f ${share}/${app}.conf ]) ; then
 		install -m 644 ${share}/${app}.conf /etc
 	fi
@@ -107,12 +102,9 @@ firstboot_start ()
 	sleep 2
 	add_nullfs
 	sync;sync;sync
-	if [ "$f_mount" == "ro" ] ; then
-        	mount -o ro /
-	fi
+        mount -o ro /
 	${libexec}/saveconfig rc.conf ${app}.conf sysctl.conf
 	reboot
-
 }
 
 firstboot_start
