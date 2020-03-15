@@ -2,17 +2,71 @@
 #
 libexec=/usr/local/libexec/spectro450/
 
+if [ -f /etc/nanobsd.conf ] ; then
+	. /etc/nanobsd.conf
+else
+	return 0
+fi
+
 grow_data_fs () {
-	sysctl kern.geom.debugflags=16
-	umount /Applications
-	if [ -f /etc/nanobsd.conf ] ; then
-		. /etc/nanobsd.conf
+	if [ -e /dev/${NANO_DRIVE}s4 ] ; then
+		sysctl kern.geom.debugflags=16
+		umount /Data
+		gpart resize -i 4 -a 4k $NANO_RDRIVE
+		sleep 3
+		newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
+		rc=$?
+		mount /Data
 	fi
-	gpart resize -i 4 -a 4k $NANO_RDRIVE
-	sleep 3
-	newfs -t -L SpectrOs4 /dev/${NANO_DRIVE}s4
-	rc=$?
-	mount /Applications
+	return $rc
+}
+
+add_nullfs () {
+        if [ -e /dev/ufs/SpectrOs4 ] ; then
+                umount $NANO_DATADIR
+                mount /dev/ufs/SpectrOs4 /mnt
+                mkdir -p /mnt/Applications /mnt/Library
+                printf "/Data/Applications\t/Applications\tnullfs\tro 0 0\n" >> $FSTAB
+                printf "/Data/Library\t/Library\tnullfs\tro 0 0\n" >> $FSTAB
+                umount /mnt 
+                mount $NANO_DATADIR
+		mount /Applications
+		mount /Library
+        fi
+}
+
+sys_config () {
+        #
+        # Setting kernel stuffs
+        ldcf=/boot/loader.conf
+        echo "autoboot_delay=\"0\"" >> $ldcf
+        # Do not wait for USB devices
+        echo "hw.usb.no_boot_wait=1" >> $ldcf
+        echo "hw.usb.no_shutdown_wait=1" >> $ldcf
+        # Disable Spectre/Meltdown patch to avoid performance problems
+        echo "vm.pmap.pti=0" >> $ldcf
+
+        # Setting /etc/sysctl.conf
+        sctl=/etc/sysctl.conf
+        # workaround pcm dead bug
+        echo "dev.hdac.0.polling=1" >> $sctl
+        # Set AC97 header as default PCM device
+        echo "hw.snd.default_unit=1" >> $sctl
+        # Set PCM device output level
+        echo "hw.snd.vpc_0db=10" >> $sctl
+
+        # Setting /etc/rc.conf
+        rcf="/etc/rc.conf"
+	for s in growfs_enable firstboot_enable cron_enable sendmail hostname
+	do
+		grep -v "${s}" $rcf > /tmp/out.$$ 
+		mv /tmp/out.$$ $rcf
+	done
+        echo "hostname=spectro450" >> $rcf
+        echo "cron_enable=\"NO\"" >> $rcf
+        echo "sendmail_submit_enable=\"NO\"" >> $rcf
+        echo "sendmail_outbound_enable=\"NO\"" >> $rcf
+        echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
 }
 
 firstboot_start () 
@@ -34,38 +88,8 @@ firstboot_start ()
 	if [ ! -f /etc/spectro450.conf ] ; then
 		install -m 644 ${shr}/spectro450.conf /etc
 	fi
-	# 
-	# Setting kernel stuffs
-	ldcf=/boot/loader.conf
-        echo "autoboot_delay=\"0\"" >> $ldcf
-	# Do not wait for USB devices
-	echo "hw.usb.no_boot_wait=1" >> $ldcf
-        echo "hw.usb.no_shutdown_wait=1" >> $ldcf
-        # Disable Spectre/Meltdown patch to avoid performance problems
-        echo "vm.pmap.pti=0" >> $ldcf
-	sctl=/etc/sysctl.conf
-        # workaround pcm dead bug
-        echo "dev.hdac.0.polling=1" >> $sctl
-        # Set AC97 header as default PCM device
-        echo "hw.snd.default_unit=1" >> $sctl
-        # Set PCM device output level
-        echo "hw.snd.vpc_0db=10" >> $sctl
 	#
-	# Setting /etc/rc.conf
-	rcf="/etc/rc.conf"
-	sed -i'' -e '/^growfs_enable/d' $rcf
-	sed -i'' -e '/^firstboot_enable/d' $rcf
-	sed -i'' -e '/^spectro450_enable/d' $rcf
-	sed -i'' -e '/^hostname/d' $rcf
-	sed -i'' -e '/^sendmail/d' $rcf
-	sed -i'' -e '/^cron_/d' $rcf
-	echo "hostname=spectro450" >> $rcf
-        echo "cron_enable=\"NO\"" >> $rcf
-        echo "sendmail_submit_enable=\"NO\"" >> $rcf
-        echo "sendmail_outbound_enable=\"NO\"" >> $rcf
-        echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
-	#
-	#
+	sys_config
 	grow_data_fs
 	if [ $? -eq 0 ] ; then
 		echo "spectro450_enable=\"YES\"" >> $rcf
@@ -75,6 +99,7 @@ firstboot_start ()
 	else
 		echo "failed."
 	fi
+	add_nullfs
 	sync;sync;sync
 	if [ "$f_mount" == "ro" ] ; then
         	mount -o ro /
