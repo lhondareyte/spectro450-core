@@ -36,11 +36,11 @@ conf="/etc/spectro-450.conf"
 media="/media/usb"
 tty="/dev/cuaU0"
 
-pid=$(pgrep $(basename $app_bin))
-
-quiet () {
-	$* > /dev/null 2>&1 ; return $?
-}
+if [ -z $app_bin ] ; then
+	pid=$(pgrep $(basename $0))
+else
+	pid=$(pgrep $(basename $app_bin))
+fi
 
 Exec () {
 	$* >> $LOG 2>&1
@@ -49,7 +49,13 @@ Exec () {
 		printf "$1 : command failed! Consult $LOG for details\n"
 		exit  $rc
 	fi
+	return $rc
 }
+
+quiet () {
+	$* > /dev/null 2>&1 ; return $?
+}
+
 
 SaveAllFiles () {
 	Exec mount /cfg 
@@ -74,7 +80,7 @@ SaveSomeFiles () {
 	Exec umount /cfg 
 }
 
-saveconfig () {
+SaveConfig () {
 	if [ $# -eq 0 ] ; then
 		SaveAllFiles
 	else
@@ -82,15 +88,15 @@ saveconfig () {
 	fi 
 }
 
-Panic () {
-	_print_user "$1" "PressAKey"
-	_getchar
-	/sbin/shutdown -p now
+Print_TTY () { 
+	printf "\033[E" 
+	for m in $* ; do printf "$(gettext -s ${*})\n" ; done
 }
 
-Print_TTY () { 
-	printf "\033[E"  # Clear screen
-	for m in $i ; do printf "$(gettext -s ${*})\n" ; done
+Panic () {
+	Print_TTY "$1" "PressAKey"
+	WaitAnyKey
+	/sbin/shutdown -p now
 }
 
 UmountUsbDrive () {
@@ -104,20 +110,23 @@ MountUsbDrive () {
 }
 
 Toggle_RW () {
+	Exec mount -orw /
 	Exec umount /Applications
 	Exec umount /Library
 	Exec umount /Data
-	Exec mount -orw /
 	Exec monut -orw /Data
-	Exec mount /Applications
-	Exec mount /
-	umount /Applications && mount /Installation
-	return $?
+	Exec mount -orw /Applications
+	Exec mount -orw /Library
 }
 
 Toggle_RO () {
-	umount /Installation 
-	[ $? -ne 0 ] && _fatal_error "EjectError"
+	Exec umount /Applications
+	Exec umount /Library
+	Exec umount /Data
+	Exec monut  /Data
+	Exec mount  /Applications
+	Exec mount  /Library
+	Exec mount -oro /
 }
 
 _readOne () {
@@ -128,63 +137,6 @@ _readOne () {
 	stty "$oldstty"
 }
 
-_getchar () {
+WaitAnyKey () {
 	_readOne < $tty > /dev/null 2>&1
-}
-
-_reset_config ()
-{
-}
-
-_method () {
-	[ -f $conf ] && app=$(cat /etc/spectro-450.conf)
-	[ -z $app ]  && _main install || _main upgrade
-}	
-
-_main () {
-	method=$1
-	for p in ${mnt}/*.pkg 
-	do
-		_p=$($(basename $p) | awk -F"." '{print $1}')
-		if [ ! -f ${mnt}/${_p}.md5 ] ; then
-			exit 1
-		else
-			app=$_p	
-			break;
-		fi
-	done
-	_stopapp
-	_print_user "InstallInProgress" "Wait"
-	. ${mnt}/${_p}.md5
-	/sbin/md5 -c $MD5 ${mnt}/${_p}.pkg
-	if [ $? -ne 0 ] ; then
-		_print_user "ChecksumError" "PressAKey"
-		_getchar
-		return 1
-	fi
-	tar tzf ${mnt}/${app}.pkg
-	if [ $? -ne 0 ] ; then
-		_print_user "ReadError" "PressAKey"
-		_getchar
-		return 1
-	fi
-	_switch_rw
-	cd /Installation
-	if [ ! -z "${app}" ] ; then
-		rm -rf $app
-		_reset_config
-	fi
-	tar xzf ${mnt}/${app}.pkg
-	if [ $? -eq 0 ] ; then
-		echo $app > $conf
-		_print_user "InstallOk" "PressAKey"
-		_getchar
-	else
-		rm -rf $app
-		_print_user "InstallError" "GivingUP"
-		_reset_config
-		sleep 3
-		_reboot
-	fi
-	_switch_ro
 }

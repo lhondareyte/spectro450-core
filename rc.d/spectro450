@@ -12,7 +12,12 @@ stop_cmd="app_stop"
 rcvar="${name}_enable"
 libexec="/usr/local/libexec/${name}"
 share="/usr/local/share/${name}"
-pid=$(pgrep $(basename $name))
+
+if [ -e ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+else
+	exit 1
+fi
 
 app_start () 
 {
@@ -25,7 +30,7 @@ app_start ()
 	fi
 	if ([ ! -f /firstboot ] && [ -f ${share}/${name}.conf ])  ; then
 		cp ${share}/${name}.conf /etc
-		${libexec}/saveconfig ${name}.conf
+		SaveConfig ${name}.conf
 	fi
 	if [ -x ${libexec}/${name} ] ; then
 		${libexec}/${name} -d
@@ -38,7 +43,7 @@ app_stop ()
 		echo "$name is already stopped."
 	else
 		kill $pid
-		${libexec}/saveconfig ${name}.conf
+		SaveConfig ${name}.conf
 	fi
 }
 
