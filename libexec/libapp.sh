@@ -28,6 +28,14 @@
 # SUCH DAMAGE.
 #
 
+export TERM=tinyVT
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+export TEXTDOMAIN=NanoUpgrade
+
+conf="/etc/spectro-450.conf"
+media="/media/usb"
+tty="/dev/cuaU0"
+
 pid=$(pgrep $(basename $app_bin))
 
 quiet () {
@@ -72,4 +80,111 @@ saveconfig () {
 	else
 		SaveSomeFiles $*
 	fi 
+}
+
+Panic () {
+	_print_user "$1" "PressAKey"
+	_getchar
+	/sbin/shutdown -p now
+}
+
+Print_TTY () { 
+	printf "\033[E"  # Clear screen
+	for m in $i ; do printf "$(gettext -s ${*})\n" ; done
+}
+
+UmountUsbDrive () {
+	umount $mnt
+	[ $? -ne 0 ] && _fatal_error "EjectError"
+}
+
+MountUsbDrive () {
+	mount -t msdosfs -o ro $device $mnt
+	[ $? -ne 0 ] && _fatal_error "ReadError"
+}
+
+Toggle_RW () {
+	Exec umount /Applications
+	Exec umount /Library
+	Exec umount /Data
+	Exec mount -orw /
+	Exec monut -orw /Data
+	Exec mount /Applications
+	Exec mount /
+	umount /Applications && mount /Installation
+	return $?
+}
+
+Toggle_RO () {
+	umount /Installation 
+	[ $? -ne 0 ] && _fatal_error "EjectError"
+}
+
+_readOne () {
+	local oldstty
+	oldstty=$(stty -g)
+	stty -icanon -echo min 1 time 0
+	dd bs=1 count=1 2>/dev/null
+	stty "$oldstty"
+}
+
+_getchar () {
+	_readOne < $tty > /dev/null 2>&1
+}
+
+_reset_config ()
+{
+}
+
+_method () {
+	[ -f $conf ] && app=$(cat /etc/spectro-450.conf)
+	[ -z $app ]  && _main install || _main upgrade
+}	
+
+_main () {
+	method=$1
+	for p in ${mnt}/*.pkg 
+	do
+		_p=$($(basename $p) | awk -F"." '{print $1}')
+		if [ ! -f ${mnt}/${_p}.md5 ] ; then
+			exit 1
+		else
+			app=$_p	
+			break;
+		fi
+	done
+	_stopapp
+	_print_user "InstallInProgress" "Wait"
+	. ${mnt}/${_p}.md5
+	/sbin/md5 -c $MD5 ${mnt}/${_p}.pkg
+	if [ $? -ne 0 ] ; then
+		_print_user "ChecksumError" "PressAKey"
+		_getchar
+		return 1
+	fi
+	tar tzf ${mnt}/${app}.pkg
+	if [ $? -ne 0 ] ; then
+		_print_user "ReadError" "PressAKey"
+		_getchar
+		return 1
+	fi
+	_switch_rw
+	cd /Installation
+	if [ ! -z "${app}" ] ; then
+		rm -rf $app
+		_reset_config
+	fi
+	tar xzf ${mnt}/${app}.pkg
+	if [ $? -eq 0 ] ; then
+		echo $app > $conf
+		_print_user "InstallOk" "PressAKey"
+		_getchar
+	else
+		rm -rf $app
+		_print_user "InstallError" "GivingUP"
+		_reset_config
+		sleep 3
+		_reboot
+	fi
+	_switch_ro
 }

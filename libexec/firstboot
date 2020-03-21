@@ -1,14 +1,20 @@
 #!/bin/sh
 #
 app="spectro450"
-libexec=/usr/local/libexec/${app}/
-share=/usr/local/share/${app}/
+libexec="/usr/local/libexec/${app}"
+share="/usr/local/share/${app}"
 fstab="/conf/base/etc/fstab"
 
 if [ -f /etc/nanobsd.conf ] ; then
 	. /etc/nanobsd.conf
 else
-	return 0
+	exit 0
+fi
+
+if [ -f ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+else
+	exit 0
 fi
 
 grow_data_fs () {
@@ -94,7 +100,7 @@ firstboot_start ()
 	#
 	sys_config
 	add_nullfs
-	${libexec}/saveconfig rc.conf ${app}.conf sysctl.conf
+	SaveSomeFiles rc.conf ${app}.conf sysctl.conf
 	if [ $? -eq 0 ] ; then
 		echo "${app}_enable=\"YES\"" >> $rcf
 		rm -f /firstboot
@@ -102,6 +108,8 @@ firstboot_start ()
 	else
 		echo "failed."
 	fi
+	# Create mount point for USB drive
+	mkdir -p $media
 	sync;sync;sync
         mount -o ro /
 	sleep 1
