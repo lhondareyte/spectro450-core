@@ -1,0 +1,105 @@
+#!/bin/sh
+#
+# This file is part of the Spectro450 Project.
+#
+# Copyright (c)2016-2020,  Luc Hondareyte
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#
+# 2. redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in 
+#    the documentation and/or other materials provided with the distribution.   
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+
+[ $# -ne 1 ] && exit 0
+
+app=$1
+appdir="/Applications/${app}"
+rscdir="${appdir}/Resources"
+platform="$(uname -s)/$(uname -p)"
+app_bin="${appdir}/Contents/${platform}/$(echo $app | tr [A-Z] [a-z])"
+libexec="/usr/local/libexec/spectro450"
+export PATH="${appdir}:${libexec}:$PATH"
+
+if [ ! -x $app_bin ] ; then
+	echo "$app : no such application."
+	exit 1
+fi
+
+if [ -e ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+fi
+
+app_start () {
+	if [ ! -z "$pid" ] ; then
+		echo "$app is already running."
+		return 1
+	fi
+	if ([ ! -f /etc/${app}.conf ] && [ -f ${rscdir}/${app}.conf ]) ; then
+		quiet install -m 644 ${rscdir}/${app}.conf /etc
+		quiet saveconfig ${app}.conf
+	fi
+	if [ -d ${rscdir}/preambule ] ; then
+		for pre in ${rscdir}/preambule/[0-9][0-9]_*
+		do
+			[ -x $pre ] && $pre
+		done
+	fi
+	if [ -d ${appdir}/Frameworks/${platform} ] ; then
+		export LD_LIBRARY_PATH=${appdir}/Frameworks/${platform}
+	fi
+	if [ -f /tmp/${app}.options ] ; then
+		options=$(cat /tmp/${app}.options)
+	fi
+	if [ -x /usr/sbin/rtprio ] ; then
+		/usr/sbin/rtprio 0 $app_bin $options
+	else
+		$app_bin $options
+	fi
+}
+
+app_stop () {
+	if [ -z "$pid" ] ; then
+		echo "$app is already stopped."
+		return 0
+	fi
+	for p in $pid 
+	do
+		kill $p
+	done
+	if [ -d ${rscdir}/postambule ] ; then
+		for post in ${rscdir}/postambule/[0-9][0-9]_*
+		do
+			[ -x $post ] && $post
+		done
+	fi
+	quiet saveconfig ${app}.conf
+	rm -f /tmp/${app}.options
+	sleep 1
+}
+
+case $(basename $0) in
+	'openapp')
+		app_start
+		;;
+	'closeapp')
+		app_stop 
+		;;
+esac
