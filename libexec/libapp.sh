@@ -31,10 +31,14 @@
 export TERM=tinyVT
 export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
 export TEXTDOMAIN=NanoUpgrade
-
+libexec="/usr/local/libexec/spectro450"
+dialog="${libexec}/dialog"
 conf="/etc/spectro-450.conf"
 media="/media/usb"
-tty="/dev/cuaU0"
+
+if [ ! -z $tty ] ; then
+	tty="/dev/spectro450"
+fi
 
 if [ -z $app_bin ] ; then
 	pid=$(pgrep $(basename $0))
@@ -55,7 +59,6 @@ Exec () {
 quiet () {
 	$* > /dev/null 2>&1 ; return $?
 }
-
 
 SaveAllFiles () {
 	Exec mount /cfg 
@@ -88,25 +91,18 @@ SaveConfig () {
 	fi 
 }
 
-Print_TTY () { 
-	printf "\033[E" 
-	for m in $* ; do printf "$(gettext -s ${*})\n" ; done
-}
-
 Panic () {
-	Print_TTY "$1" "PressAKey"
-	WaitAnyKey
+	$dialog -k "$1" "PressAKey"
 	/sbin/shutdown -p now
 }
 
 UmountUsbDrive () {
-	umount $mnt
-	[ $? -ne 0 ] && _fatal_error "EjectError"
+	umount $media
 }
 
 MountUsbDrive () {
-	mount -t msdosfs -o ro $device $mnt
-	[ $? -ne 0 ] && _fatal_error "ReadError"
+	device=$1
+	mount -t msdosfs -o ro $device $media
 }
 
 Toggle_RW () {
@@ -127,16 +123,4 @@ Toggle_RO () {
 	Exec mount  /Applications
 	Exec mount  /Library
 	Exec mount -oro /
-}
-
-_readOne () {
-	local oldstty
-	oldstty=$(stty -g)
-	stty -icanon -echo min 1 time 0
-	dd bs=1 count=1 2>/dev/null
-	stty "$oldstty"
-}
-
-WaitAnyKey () {
-	_readOne < $tty > /dev/null 2>&1
 }
