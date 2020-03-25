@@ -31,11 +31,15 @@
 [ $# -ne 1 ] && exit 0
 
 app=$1
-appdir="/Applications/${app}"
+libexec="/usr/local/libexec/spectro450"
+if [ -f ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+fi
+appdir="${appRoot}/${app}"
+libdir="${libRoot}/${app}"
 rscdir="${appdir}/Resources"
 platform="$(uname -s)/$(uname -p)"
 app_bin="${appdir}/Contents/${platform}/$(echo $app | tr [A-Z] [a-z])"
-libexec="/usr/local/libexec/spectro450"
 export PATH="${appdir}:${libexec}:$PATH"
 
 if [ ! -x $app_bin ] ; then

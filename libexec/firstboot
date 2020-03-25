@@ -64,16 +64,18 @@ sys_config () {
 
         # Setting /etc/rc.conf
         rcf="/etc/rc.conf"
-	for s in growfs_enable firstboot_enable cron_enable sendmail hostname
+	for s in growfs_enable firstboot_enable cron_enable sendmail_ hostname
 	do
-		grep -v "${s}" $rcf > /tmp/out.$$ 
-		mv /tmp/out.$$ $rcf
+		eval sed -i'' -e '/${s}/d' $rcf
 	done
         echo "hostname=$app" >> $rcf
         echo "cron_enable=\"NO\"" >> $rcf
         echo "sendmail_submit_enable=\"NO\"" >> $rcf
         echo "sendmail_outbound_enable=\"NO\"" >> $rcf
         echo "sendmail_msp_queue_enable=\"NO\"" >> $rcf
+	if [ -x /usr/local/etc/rc.d/jackd ] ; then
+        	echo "jackd_enable=\"YES\"" >> $rcf
+	fi
 }
 
 firstboot_start () 
@@ -94,15 +96,23 @@ firstboot_start ()
 	fi
 	#
 	# Install configuration file
-	if ([ ! -f /etc/${app}.conf ] && [ -f ${share}/${app}.conf ]) ; then
-		install -m 644 ${share}/${app}.conf /etc
+	echo "APP=\"NONE\"" > /etc/${app}.conf
+	if [ -e /dev/tinyVT ] ; then
+		echo "TERM=\"tinyVT\"" >> /etc/${app}.conf
+		echo "TTY=\"/dev/tinyVT\"" >> /etc/${app}.conf
+	elif [ -e /dev/tinyVT-II ] ; then
+		echo "TERM=\"tinyVT-II\"" >> /etc/${app}.conf
+		echo "TTY=\"/dev/tinyVT-II\"" >> /etc/${app}.conf
+	else
+		echo "TERM=\"xterm\"" >> /etc/${app}.conf
+		echo "TTY=\"/dev/console\"" >> /etc/${app}.conf
 	fi
+
 	#
 	sys_config
 	add_nullfs
 	SaveSomeFiles rc.conf ${app}.conf sysctl.conf
 	if [ $? -eq 0 ] ; then
-		echo "${app}_enable=\"YES\"" >> $rcf
 		rm -f /firstboot
 		echo "done."
 	else
@@ -113,7 +123,7 @@ firstboot_start ()
 	sync;sync;sync
         mount -o ro /
 	sleep 1
-	reboot
+	Reboot
 }
 
 firstboot_start

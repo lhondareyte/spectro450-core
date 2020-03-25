@@ -28,10 +28,6 @@ app_start ()
 	if [ -f /firstboot ] ; then
 		${libexec}/firstboot
 	fi
-	if ([ ! -f /firstboot ] && [ -f ${share}/${name}.conf ])  ; then
-		cp ${share}/${name}.conf /etc
-		SaveConfig ${name}.conf
-	fi
 	if [ -x ${libexec}/${name} ] ; then
 		${libexec}/${name} -d
 	fi

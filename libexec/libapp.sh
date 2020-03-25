@@ -28,16 +28,22 @@
 # SUCH DAMAGE.
 #
 
-export TERM=tinyVT
-export PATH="/bin:/sbin:/usr/bin:/usr/sbin"
-export TEXTDOMAIN=NanoUpgrade
+PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin"
+#export TEXTDOMAIN=NanoUpgrade
 libexec="/usr/local/libexec/spectro450"
+appRoot="/Applications"
+libRoot="/Library"
 dialog="${libexec}/dialog"
-conf="/etc/spectro-450.conf"
+conf="/etc/spectro450.conf"
 media="/media/usb"
+log="/tmp/$app.log"
 
-if [ ! -z $tty ] ; then
-	tty="/dev/spectro450"
+if [ -f $conf ] ; then
+	. $conf
+else
+	TERM=xterm
+	TTY=/dev/console
+	APP=NONE
 fi
 
 if [ -z $app_bin ] ; then
@@ -47,7 +53,7 @@ else
 fi
 
 Exec () {
-	$* >> $LOG 2>&1
+	$* >> $log 2>&1
 	rc=$?
 	if [ $rc -ne 0 ] ; then
 		printf "$1 : command failed! Consult $LOG for details\n"
@@ -63,17 +69,22 @@ quiet () {
 SaveAllFiles () {
 	Exec mount /cfg 
 	cd /cfg
+	printf "Saving configuration "
 	find . -type f | while read f
 	do
 		Exec cp -p /etc/$f .
+		printf "."
+		sleep 1
 	done
+	echo "done."
+	sleep 1
 	sync;sync;sync
 	cd && Exec umount /cfg
 }
 
 SaveSomeFiles () {
-	cd && Exec mount /cfg 
-	for f in $ARGS
+	Exec mount /cfg 
+	for f in $*
 	do
 		if [ -f /etc/$f ] ; then
 			cp -p /etc/$f /cfg/$f
@@ -124,3 +135,14 @@ Toggle_RO () {
 	Exec mount  /Library
 	Exec mount -oro /
 }
+
+Reboot () {
+	SaveConfig
+	/sbin/reboot
+}
+
+Poweroff () {
+	SaveConfig
+	/sbin/shutdown -p now
+}
+
