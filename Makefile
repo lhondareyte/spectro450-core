@@ -4,7 +4,7 @@ PKG     = spectro450
 PREFIX  ?= /usr/local
 INSTALL ?= install -u root -g wheel
 INSTALLDIR = $(DESTDIR)$(PREFIX)
-SUBDIRS = dialog
+SUBDIRS = dialog lib
 
 install: build
 	mkdir -p $(INSTALLDIR)/libexec/$(PKG)
@@ -13,13 +13,15 @@ install: build
 	mkdir -p $(INSTALLDIR)/devd
 	mkdir -p $(INSTALLDIR)/share/$(PKG)
 	$(INSTALL) -m 555 dialog/dialog $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 lib/libspectro.so $(INSTALLDIR)/lib
 	$(INSTALL) -m 555 rc.d/$(PKG) $(INSTALLDIR)/etc/rc.d
 	$(INSTALL) -m 555 libexec/libapp.sh $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/firstboot $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/pkgmgt $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 bin/openapp $(INSTALLDIR)/bin
 	$(INSTALL) -m 644 devd/$(PKG).conf $(INSTALLDIR)/etc/devd
-	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp
+	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp && cd -
+	cd $(INSTALLDIR)/lib &&  ln -s libspectro450.so libspectro.so.1
 
 build:
 	@for dir in $(SUBDIRS); do \
