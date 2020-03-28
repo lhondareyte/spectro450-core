@@ -1,8 +1,8 @@
+#!/bin/sh
 #
-# This file is part of the spectro-450 Project.
+# This file is part of the Spectro450 Project.
 #
-# Copyright (c)2016-2020  Luc Hondareyte
-# All rights reserved.
+# Copyright (c)2020,  Luc Hondareyte
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,15 +28,61 @@
 # SUCH DAMAGE.
 #
 
-# Upgrade/Install software from flash drive
-options {
-	set LIBEXEC "/usr/local/libexec/spectro450";
-};
+#!/bin/sh
+#
+app="spectro450"
+libexec="/usr/local/libexec/${app}"
+share="/usr/local/share/${app}"
+fstab="/conf/base/etc/fstab"
 
-notify 0 {
-        match "system" "DEVFS";
-        match "subsystem" "CDEV";
-        match "type" "CREATE";
-        match "cdev" "da[0-9]s1";
-        action "$LIBEXEC/pkgmgt install /dev/$cdev";
-};
+if [ $# -ne 2 ] ; then
+	exit 0
+fi
+
+if [ -f /etc/nanobsd.conf ] ; then
+	. /etc/nanobsd.conf
+else
+	exit 0
+fi
+
+if [ -f ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+else
+	exit 0
+fi
+
+Install () {
+	dev=$1
+	Exec MountUsbDrive $dev
+	Exec Toggle_RW
+	cd $media
+	for p in *pkg
+	do
+		# Check spectro450 compatibility
+		pkg -rF $p | grep spectro450
+		if [ $? -eq 0 ] ; then
+			Log "installing $p"
+			pkg install -y $p
+		fi
+	done
+	cd -
+	Exec Toggle_RO
+	touch /tmp/pkgmgt.done
+	Exec UmountUsbDrive
+}
+
+case $1 in 
+	'install')
+		Log "Installing from $2"
+		Install $2
+	;;
+	'remove')
+		Remove $2
+	;;
+	'update')
+		Update $2
+	;;
+	*)
+		exit 1
+	;;
+esac

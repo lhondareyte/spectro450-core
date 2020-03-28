@@ -1,21 +1,24 @@
 #
 #  $Id$
 PKG     = spectro450
-PREFIX  = /usr/local
-INSTALL = install -u root -g wheel
+PREFIX  ?= /usr/local
+INSTALL ?= install -u root -g wheel
+INSTALLDIR = $(DESTDIR)$(PREFIX)
 
 install: 	
-	mkdir -p $(PREFIX)/libexec/$(PKG)
-	mkdir -p $(PREFIX)/bin
-	mkdir -p $(PREFIX)/rc.d
-	mkdir -p $(PREFIX)/devd
-	mkdir -p $(PREFIX)/share/$(PKG)
-	$(INSTALL) -m 555 dialog/dialog $(PREFIX)/libexec/$(PKG)
-	$(INSTALL) -m 555 dialog/rc.d/$(PKG) $(PREFIX)/etc/rc.d
-	$(INSTALL) -m 555 libexec/firstboot $(PREFIX)/libexec
-	$(INSTALL) -m 555 bin/openapp $(PREFIX)/bin
-	ln -s $(PREFIX)/bin/openapp $(PREFIX)/bin/closeapp
-	$(INSTALL) -m 644 dialog/devd/$(PKG).conf $(PREFIX)/etc/rc.d
+	mkdir -p $(INSTALLDIR)/libexec/$(PKG)
+	mkdir -p $(INSTALLDIR)/bin
+	mkdir -p $(INSTALLDIR)/rc.d
+	mkdir -p $(INSTALLDIR)/devd
+	mkdir -p $(INSTALLDIR)/share/$(PKG)
+	$(INSTALL) -m 555 dialog/dialog $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 rc.d/$(PKG) $(INSTALLDIR)/etc/rc.d
+	$(INSTALL) -m 555 libexec/libapp.sh $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 libexec/firstboot $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 libexec/pkgmgt $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 bin/openapp $(INSTALLDIR)/bin
+	$(INSTALL) -m 644 devd/$(PKG).conf $(INSTALLDIR)/etc/devd
+	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp
 
 build:
 	@for dir in $(SUBDIRS); do \

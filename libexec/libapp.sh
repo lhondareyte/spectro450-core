@@ -36,7 +36,7 @@ libRoot="/Library"
 dialog="${libexec}/dialog"
 conf="/etc/spectro450.conf"
 media="/media/usb"
-log="/tmp/$app.log"
+log="/tmp/$(basename $0).log"
 
 if [ -f $conf ] ; then
 	. $conf
@@ -52,13 +52,19 @@ else
 	pid=$(pgrep $(basename $app_bin))
 fi
 
+Log() {
+	echo "$*" >> $log
+}
+
 Exec () {
 	$* >> $log 2>&1
 	rc=$?
 	if [ $rc -ne 0 ] ; then
-		printf "$1 : command failed! Consult $LOG for details\n"
+		printf "$1 : command failed! Consult $log for details\n"
+		Log "$*: failed"
 		exit  $rc
 	fi
+	Log "$*: ok."
 	return $rc
 }
 
@@ -117,23 +123,25 @@ MountUsbDrive () {
 }
 
 Toggle_RW () {
+	Log "Toggle all FS read-write"
 	Exec mount -orw /
 	Exec umount /Applications
 	Exec umount /Library
 	Exec umount /Data
-	Exec monut -orw /Data
+	Exec mount -orw /Data
 	Exec mount -orw /Applications
 	Exec mount -orw /Library
 }
 
 Toggle_RO () {
+	Log "Toggle all FS read-only"
 	Exec umount /Applications
 	Exec umount /Library
 	Exec umount /Data
-	Exec monut  /Data
+	Exec mount -oro /
+	Exec mount  /Data
 	Exec mount  /Applications
 	Exec mount  /Library
-	Exec mount -oro /
 }
 
 Reboot () {
