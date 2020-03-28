@@ -21,7 +21,7 @@ install: build
 	$(INSTALL) -m 555 bin/openapp $(INSTALLDIR)/bin
 	$(INSTALL) -m 644 devd/$(PKG).conf $(INSTALLDIR)/etc/devd
 	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp && cd -
-	cd $(INSTALLDIR)/lib &&  ln -s libspectro450.so libspectro.so.1
+	cd $(INSTALLDIR)/lib &&  ln -s libspectro.so libspectro.so.1
 
 build:
 	@for dir in $(SUBDIRS); do \
