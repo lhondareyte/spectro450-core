@@ -4,8 +4,9 @@ PKG     = spectro450
 PREFIX  ?= /usr/local
 INSTALL ?= install -u root -g wheel
 INSTALLDIR = $(DESTDIR)$(PREFIX)
+SUBDIRS = dialog
 
-install: 	
+install: build
 	mkdir -p $(INSTALLDIR)/libexec/$(PKG)
 	mkdir -p $(INSTALLDIR)/bin
 	mkdir -p $(INSTALLDIR)/rc.d
