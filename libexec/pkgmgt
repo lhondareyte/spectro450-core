@@ -28,12 +28,8 @@
 # SUCH DAMAGE.
 #
 
-#!/bin/sh
-#
-app="spectro450"
-libexec="/usr/local/libexec/${app}"
-share="/usr/local/share/${app}"
-fstab="/conf/base/etc/fstab"
+libexec="/usr/local/libexec/spectro450"
+services="spectro450 jackit"
 
 if [ $# -ne 2 ] ; then
 	exit 0
@@ -56,19 +52,40 @@ Install () {
 	Exec MountUsbDrive $dev
 	Exec Toggle_RW
 	cd $media
-	for p in *pkg
+	#
+	# Update services
+	for s in $services
 	do
-		# Check spectro450 compatibility
-		pkg -rF $p | grep spectro450
-		if [ $? -eq 0 ] ; then
-			Log "installing $p"
-			pkg install -y $p
-		fi
+		for p in $(ls ${s}*.txz)
+		do
+			Log "Upgrade $p"
+			Exec pkg add $p
+			/sbin/service $s restart
+			mv $p $p.done
+		done
+	done
+	#
+	# Update or install packages
+	for p in $(ls *.txz)
+	do
+		Log "Adding $p"
+		Exec pkg add $p
+		mv $p $p.done
 	done
 	cd -
 	Exec Toggle_RO
 	touch /tmp/pkgmgt.done
 	Exec UmountUsbDrive
+}
+
+Remove () {
+	Exec Toggle_RW
+	pkg remove -y $1
+	mount /cfg
+	rm -f /etc/$(basename $app_bin).conf \
+              /cfg/$(basename $app_bin).conf
+	umount /cfg
+	Exec Toggle_RO
 }
 
 case $1 in 
@@ -77,10 +94,8 @@ case $1 in
 		Install $2
 	;;
 	'remove')
+		Log "Removing $2"
 		Remove $2
-	;;
-	'update')
-		Update $2
 	;;
 	*)
 		exit 1

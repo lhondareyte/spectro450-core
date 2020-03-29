@@ -30,25 +30,16 @@
 
 [ $# -ne 1 ] && exit 0
 
-app=$1
+export app=$1
 libexec="/usr/local/libexec/spectro450"
 if [ -f ${libexec}/libapp.sh ] ; then
 	. ${libexec}/libapp.sh
 fi
-appdir="${appRoot}/${app}"
-libdir="${libRoot}/${app}"
-rscdir="${appdir}/Resources"
-platform="$(uname -s)/$(uname -p)"
-app_bin="${appdir}/Contents/${platform}/$(echo $app | tr [A-Z] [a-z])"
-export PATH="${appdir}:${libexec}:$PATH"
+export app_bin="${ctndir}/$(echo $app | tr [A-Z] [a-z])"
 
 if [ ! -x $app_bin ] ; then
 	echo "$app : no such application."
 	exit 1
-fi
-
-if [ -e ${libexec}/libapp.sh ] ; then
-	. ${libexec}/libapp.sh
 fi
 
 app_start () {
@@ -56,26 +47,49 @@ app_start () {
 		echo "$app is already running."
 		return 1
 	fi
+	#
+	# Save configuration if not present after installation
 	if ([ ! -f /etc/${app}.conf ] && [ -f ${rscdir}/${app}.conf ]) ; then
 		quiet install -m 644 ${rscdir}/${app}.conf /etc
 		quiet saveconfig ${app}.conf
 	fi
+	#
+	# Execute pre scripts if exists
 	if [ -d ${rscdir}/preambule ] ; then
-		for pre in ${rscdir}/preambule/[0-9][0-9]_*
+		for pre in ${rscdir}/preambule/S[0-9]_*
 		do
 			[ -x $pre ] && $pre
 		done
 	fi
+	#
+	# Set embedded libraries
 	if [ -d ${appdir}/Frameworks/${platform} ] ; then
 		export LD_LIBRARY_PATH=${appdir}/Frameworks/${platform}
 	fi
+	#
+	# Pre-scripts could generate arguments file
 	if [ -f /tmp/${app}.options ] ; then
 		options=$(cat /tmp/${app}.options)
 	fi
+	#
+	# Load environment variables if exists
+	if [ -f $rscdir/environ ] ; then
+		. $rscdir/environ
+	fi
+	#
+	# Running $app with high priority
 	if [ -x /usr/sbin/rtprio ] ; then
 		/usr/sbin/rtprio 0 $app_bin $options
 	else
-		$app_bin $options
+		$app_bin $options 
+	fi
+	#
+	# Execute post scripts ifle running (e.g ramdisk for soundfiles)
+	if [ -d ${rscdir}/preambule ] ; then
+		for pre in ${rscdir}/postambule/S[0-9]_*
+		do
+			[ -x $pre ] && $pre
+		done
 	fi
 }
 
@@ -88,8 +102,10 @@ app_stop () {
 	do
 		kill $p
 	done
+	#
+	# Execute cleaning scripts if exists
 	if [ -d ${rscdir}/postambule ] ; then
-		for post in ${rscdir}/postambule/[0-9][0-9]_*
+		for post in ${rscdir}/postambule/K[0-9]_*
 		do
 			[ -x $post ] && $post
 		done

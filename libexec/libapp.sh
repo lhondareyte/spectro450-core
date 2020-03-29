@@ -29,22 +29,30 @@
 #
 
 PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin"
-#export TEXTDOMAIN=NanoUpgrade
-libexec="/usr/local/libexec/spectro450"
-appRoot="/Applications"
-libRoot="/Library"
-dialog="${libexec}/dialog"
-conf="/etc/spectro450.conf"
-media="/media/usb"
-log="/tmp/$(basename $0).log"
+
+export platform="$(uname -s)/$(uname -p)"
+export libexec="/usr/local/libexec/spectro450"
+export appRoot="/Applications"
+export libRoot="/Library"
+export conf="/etc/spectro450.conf"
+export media="/media/usb"
+export log="/tmp/$(basename $0).log"
+
+export appdir="${appRoot}/${app}"
+export libdir="${libRoot}/${app}"
+export ctndir="${appdir}/Contents/${platform}"
+export rscdir="${appdir}/Resources"
+export PATH="${appdir}:${libexec}:$PATH"
+
+export dialog="${libexec}/dialog"
 
 if [ -f $conf ] ; then
 	. $conf
-else
-	TERM=xterm
-	TTY=/dev/console
-	APP=NONE
 fi
+
+[ ! -z $JACK ] && export JACK || export JACK="NO"
+[ ! -z $_TTY ] && export _TTY || export _TTY="/dev/console"
+[ ! -z $TERM ] && export TERM || export TERM="xterm"
 
 if [ -z $app_bin ] ; then
 	pid=$(pgrep $(basename $0))
@@ -119,7 +127,7 @@ UmountUsbDrive () {
 
 MountUsbDrive () {
 	device=$1
-	mount -t msdosfs -o ro $device $media
+	mount -t msdosfs $device $media
 }
 
 Toggle_RW () {
