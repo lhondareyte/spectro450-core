@@ -6,6 +6,11 @@ INSTALL ?= install -u root -g wheel
 INSTALLDIR = $(DESTDIR)$(PREFIX)
 SUBDIRS = dialog lib
 
+build:
+	@for dir in $(SUBDIRS); do \
+		(cd $$dir && $(MAKE) ); \
+	done
+
 install: build
 	mkdir -p $(INSTALLDIR)/libexec/$(PKG)
 	mkdir -p $(INSTALLDIR)/bin
@@ -23,11 +28,6 @@ install: build
 	$(INSTALL) -m 644 devd/$(PKG).conf $(INSTALLDIR)/etc/devd
 	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp && cd -
 	cd $(INSTALLDIR)/lib &&  ln -s libspectro.so libspectro.so.1
-
-build:
-	@for dir in $(SUBDIRS); do \
-		(cd $$dir && $(MAKE) ); \
-	done
 
 clean:
 	@for dir in $(SUBDIRS); do \
