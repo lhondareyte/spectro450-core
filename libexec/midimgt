@@ -1,8 +1,8 @@
+#!/bin/sh
 #
-# This file is part of the spectro-450 Project.
+# This file is part of the Spectro450 Project.
 #
-# Copyright (c)2016-2020  Luc Hondareyte
-# All rights reserved.
+# Copyright (c)2020,  Luc Hondareyte
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,23 +28,23 @@
 # SUCH DAMAGE.
 #
 
-# Upgrade/Install software from flash drive
-options {
-	set LIBEXEC "/usr/local/libexec/spectro450";
-};
+libexec="/usr/local/libexec/spectro450"
 
-notify 0 {
-        match "system" "DEVFS";
-        match "subsystem" "CDEV";
-        match "type" "CREATE";
-        match "cdev" "da[0-9]s1";
-        action "$LIBEXEC/pkgmgt install /dev/$cdev";
-};
+if [ -f ${libexec}/libapp.sh ] ; then
+	. ${libexec}/libapp.sh
+else
+	exit 0
+fi
+if [ $# -ne 1 ] ; then
+	exit 0
+fi
 
-notify 0 {
-        match "system" "DEVFS";
-        match "subsystem" "CDEV";
-        match "type" "CREATE";
-        match "cdev" "umidi[0-9].[0-9]";
-        action "$LIBEXEC/midimgt /dev/$cdev";
-};
+if [ -f /etc/spectro450.conf ] ; then
+	/etc/spectro450.conf
+fi
+
+if ([ -z $JACK ] || [ $JACK != "YES" ]) ; then
+	exit 0
+else
+	Jack_Register $1
+fi

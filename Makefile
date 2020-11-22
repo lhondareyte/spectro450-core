@@ -18,6 +18,7 @@ install: build
 	$(INSTALL) -m 555 libexec/libapp.sh $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/firstboot $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/pkgmgt $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 libexec/midimgt $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 bin/openapp $(INSTALLDIR)/bin
 	$(INSTALL) -m 644 devd/$(PKG).conf $(INSTALLDIR)/etc/devd
 	cd $(INSTALLDIR)/bin &&  ln -s openapp closeapp && cd -
