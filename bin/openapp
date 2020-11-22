@@ -35,9 +35,8 @@ libexec="/usr/local/libexec/spectro450"
 if [ -f ${libexec}/libapp.sh ] ; then
 	. ${libexec}/libapp.sh
 fi
-export app_bin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 
-if [ ! -x $app_bin ] ; then
+if ([ ! -x $app_run ] && [ ! -x $app_bin ] ; then
 	echo "$app : no such application."
 	exit 1
 fi
@@ -56,7 +55,7 @@ app_start () {
 	#
 	# Execute pre scripts if exists
 	if [ -d ${rscdir}/preambule ] ; then
-		for pre in ${rscdir}/preambule/S[0-9]_*
+		for pre in ${rscdir}/preambule/[0-9]_*
 		do
 			[ -x $pre ] && $pre
 		done
@@ -74,9 +73,12 @@ app_start () {
 	#
 	# Running $app with high priority
 	if [ -x /usr/sbin/rtprio ] ; then
-		/usr/sbin/rtprio 0 $app_bin
+		RTPRIO="/usr/sbin/rtprio 0"
+	fi
+	if [ -x $app_run ] ; then
+		$RTPRIO $app_run
 	else
-		$app_bin
+		$RTPRIO $app_bin
 	fi
 	#
 	# Execute post scripts after running (e.g ramdisk for soundfiles)

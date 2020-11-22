@@ -39,12 +39,15 @@ export media="/media/usb"
 export log="/tmp/$(basename $0).log"
 
 export appdir="${appRoot}/${app}"
-export libdir="${libRoot}/${app}"
+export app_bin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
+export app_run="${appdir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 export ctndir="${appdir}/Contents/${platform}"
+export dialog="${libexec}/dialog"
+export libdir="${libRoot}/${app}"
 export rscdir="${appdir}/Resources"
+
 export PATH="${appdir}:${libexec}:$PATH"
 
-export dialog="${libexec}/dialog"
 
 if [ -f $conf ] ; then
 	. $conf
@@ -152,6 +155,13 @@ Toggle_RO () {
 	Exec mount  /Library
 }
 
+Jack_Register () {
+        device=$1
+        app_midi_port=$(jack_lsp | awk '/noizebox/ && /midi_/ {print}')
+        jack_umidi -nspectro -kBd /dev/$device
+        jack_connect spectro-${device}:midi.TX $app_midi_port
+}
+
 Reboot () {
 	SaveConfig
 	/sbin/reboot
@@ -161,4 +171,3 @@ Poweroff () {
 	SaveConfig
 	/sbin/shutdown -p now
 }
-
