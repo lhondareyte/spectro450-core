@@ -35,7 +35,7 @@ libexec="/usr/local/libexec/spectro450"
 if [ -f ${libexec}/libapp.sh ] ; then
 	. ${libexec}/libapp.sh
 fi
-export app_bin="${ctndir}/$(echo $app | tr [A-Z] [a-z])"
+export app_bin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 
 if [ ! -x $app_bin ] ; then
 	echo "$app : no such application."
