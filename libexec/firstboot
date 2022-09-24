@@ -31,7 +31,7 @@ add_nullfs () {
         if [ -e /dev/ufs/SpectrOs4 ] ; then
                 umount $NANO_DATADIR
                 mount /dev/ufs/SpectrOs4 /mnt
-		for d in Applications
+		for d in Applications Library
 		do
 			mkdir -p /mnt/$d /$d
 			printf "/Data/$d\t/$d\tnullfs ro 0 0\n"
