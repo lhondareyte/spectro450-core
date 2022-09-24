@@ -10,7 +10,6 @@ PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin"
 export platform="$(uname -s)/$(uname -p)"
 export libexec="/usr/local/libexec/spectro450"
 export appRoot="/Applications"
-export libRoot="/Library"
 export conf="/etc/spectro450.conf"
 export media="/media/usb"
 export log="/tmp/$(basename $0).log"
@@ -20,7 +19,6 @@ export app_bin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 export app_run="${appdir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 export ctndir="${appdir}/Contents/${platform}"
 export dialog="${libexec}/dialog"
-export libdir="${libRoot}/${app}"
 export rscdir="${appdir}/Resources"
 
 export PATH="${appdir}:${libexec}:$PATH"
@@ -109,22 +107,18 @@ Toggle_RW () {
 	Log "Toggle all FS read-write"
 	Exec mount -orw /
 	Exec umount /Applications
-	Exec umount /Library
 	Exec umount /Data
 	Exec mount -orw /Data
 	Exec mount -orw /Applications
-	Exec mount -orw /Library
 }
 
 Toggle_RO () {
 	Log "Toggle all FS read-only"
 	Exec umount /Applications
-	Exec umount /Library
 	Exec umount /Data
 	Exec mount -oro /
 	Exec mount  /Data
 	Exec mount  /Applications
-	Exec mount  /Library
 }
 
 Jack_Register () {
