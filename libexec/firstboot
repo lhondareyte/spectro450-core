@@ -82,7 +82,7 @@ firstboot_start ()
 	printf "Setting up Spectro450..."
 	# mount / rw if needed
 	f_mount=$(mount -p / | awk '{print $4}')
-	if [ "$f_mount" == "ro" ] ; then
+	if [ "$f_mount" = "ro" ] ; then
         	mount -orw /
 	fi
 	# 

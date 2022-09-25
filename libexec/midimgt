@@ -9,4 +9,4 @@
 
 libexec="/usr/local/libexec/spectro450"
 [ -f ${libexec}/libapp.sh ] && . ${libexec}/libapp.sh || exit 0
-[ $JACK == "YES" ] &&  Jack_Register $1
+[ $JACK = "YES" ] &&  Jack_Register $1

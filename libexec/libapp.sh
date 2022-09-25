@@ -2,12 +2,12 @@
 #
 # This file is part of the Spectro450 Project.
 #
-# Copyright (c)2016-2020,  Luc Hondareyte
+# Copyright (c)2016-2022,  Luc Hondareyte
 #
 
 PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin"
 
-export platform="$(uname -s)/$(uname -p)"
+export platform="$(uname -s)/$(uname -m)"
 export libexec="/usr/local/libexec/spectro450"
 export appRoot="/Applications"
 export libRoot="/Library"
@@ -16,8 +16,8 @@ export media="/media/usb"
 export log="/tmp/$(basename $0).log"
 
 export appdir="${appRoot}/${app}"
-export app_bin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
-export app_run="${appdir}/$(echo $app | tr '[A-Z]' '[a-z]')"
+export appbin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
+export apprun="${appdir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 export ctndir="${appdir}/Contents/${platform}"
 export dialog="${libexec}/dialog"
 export libdir="${libRoot}/${app}"
@@ -25,12 +25,12 @@ export rscdir="${appdir}/Resources"
 
 export PATH="${appdir}:${libexec}:$PATH"
 
-[ -f $conf ] && . $conf
+[ ! -f $conf ] || . $conf
 [ ! -z $JACK ] && export JACK || export JACK="NO"
 [ ! -z $_TTY ] && export _TTY || export _TTY="/dev/console"
 [ ! -z $TERM ] && export TERM || export TERM="xterm"
 
-if [ -z $app_bin ] ; then
+if [ -z $appbin ] ; then
 	pid=$(pgrep $(basename $0))
 else
 	pid=$(pgrep $(basename $app_bin))
@@ -105,33 +105,62 @@ MountUsbDrive () {
 	mount -t msdosfs $1 $media
 }
 
-Toggle_RW () {
+ToggleRW () {
 	Log "Toggle all FS read-write"
 	Exec mount -orw /
-	Exec umount /Applications
-	Exec umount /Library
-	Exec umount /Data
-	Exec mount -orw /Data
-	Exec mount -orw /Applications
-	Exec mount -orw /Library
+	for m in /Applications /Library /Data
+	do
+		Exec umount $m
+	done
+	for m in /Data /Library /Applications
+	do
+		Exec mount -orw $m
+	done
+	Exec -orw /
 }
 
-Toggle_RO () {
+ToggleRO () {
 	Log "Toggle all FS read-only"
-	Exec umount /Applications
-	Exec umount /Library
-	Exec umount /Data
-	Exec mount -oro /
-	Exec mount  /Data
-	Exec mount  /Applications
-	Exec mount  /Library
+	for m in /Applications /Library /Data
+	do
+		Exec umount $m
+	done
+	for m in /Data /Library /Applications
+	do
+		Exec mount -oro $m
+	done
+	Exec -orw /
 }
 
-Jack_Register () {
+JackRegister () {
         device=$1
         app_midi_port=$(jack_lsp | awk '/noizebox/ && /midi_/ {print}')
         jack_umidi -nspectro -kBd /dev/$device
         jack_connect spectro-${device}:midi.TX $app_midi_port
+}
+
+MakeRamdisk () {
+	mount_point=$1
+        if [ "$ramdisk" != "YES" ] && [ "$ramdisk" != "yes" ] ;  then
+                return 0
+        fi
+        if [ -f /etc/ramdisk.conf ] ; then
+                . /etc/ramdisk.conf
+        else
+                RAMDISK_SIZE=256m
+        fi
+        MD=$(mdconfig -a -t swap -s $RAMDISK_SIZE 2>/dev/null)
+        [ $? -ne 0 ] && return 0
+        quiet newfs -U /dev/$MD
+        mount -t ufs /dev/$MD /Ramdisk
+	mkdir -p $mount_point
+}
+
+DeleteRamdisk () {
+        MD=$(mount | awk '/\/Ramdisk/ {print $1}')
+        [ -z $MD ] && return 0
+        quiet umount -f /Ramdisk
+        quiet mdconfig -d -u ${MD}
 }
 
 Reboot () {
@@ -143,3 +172,4 @@ Poweroff () {
 	SaveConfig
 	/sbin/shutdown -p now
 }
+
