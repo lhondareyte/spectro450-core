@@ -2,7 +2,7 @@
 #
 # This file is part of the Spectro450 Project.
 #
-# Copyright (c)2020,  Luc Hondareyte
+# Copyright (c)2020, Luc Hondareyte
 #
 
 libexec="/usr/local/libexec/spectro450"
@@ -11,6 +11,16 @@ services="spectro450 jackit"
 [ $# -ne 2 ] &&  exit 0
 [ -f /etc/nanobsd.conf ] && . /etc/nanobsd.conf || exit 0
 [ -f ${libexec}/libapp.sh ] && . ${libexec}/libapp.sh || exit 0
+
+PostInstall () {
+	appdir=$1
+
+}
+
+PostRemove () {
+	appdir=$1
+
+}
 
 Install () {
 	dev=$1
@@ -31,7 +41,7 @@ Install () {
 	done
 	#
 	# Update or install packages
-	for p in $(ls *.txz)
+	for p in $(ls *.txz *.pkg)
 	do
 		Log "Adding $p"
 		Exec pkg add $p
@@ -47,8 +57,10 @@ Remove () {
 	Exec Toggle_RW
 	pkg remove -y $1
 	mount /cfg
-	rm -f /etc/$(basename $app_bin).conf \
-              /cfg/$(basename $app_bin).conf
+	rm -f /etc/${flatname}.conf \
+	      /etc/devd/${flatname}.conf \
+              /cfg/${flatname}.conf \
+              /cfg/devd/${flatname}.conf
 	umount /cfg
 	Exec Toggle_RO
 }

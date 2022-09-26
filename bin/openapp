@@ -2,30 +2,7 @@
 #
 # This file is part of the Spectro450 Project.
 #
-# Copyright (c)2016-2020,  Luc Hondareyte
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#
-# 2. redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in 
-#    the documentation and/or other materials provided with the distribution.   
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-# SUCH DAMAGE.
+# Copyright (c)2016-2022,  Luc Hondareyte
 #
 
 [ $# -ne 1 ] && exit 0
@@ -34,10 +11,23 @@ export app=$1
 libexec="/usr/local/libexec/spectro450"
 if [ -f ${libexec}/libapp.sh ] ; then
 	. ${libexec}/libapp.sh
+else
+	echo "error : libapp.sh not found."
+	exit 1
 fi
 
-if ([ ! -x $app_run ] && [ ! -x $app_bin ] ; then
+app_list () {
+	list=$(listApplications)
+	if [ -z list ] ; then
+		list="(none)\n"
+	fi
+	printf "Available(s) application(s): \n - $list\n"
+}
+
+
+if ([ ! -x $apprun ] && [ ! -x $appbin ]) ; then
 	echo "$app : no such application."
+	app_list
 	exit 1
 fi
 
@@ -46,48 +36,28 @@ app_start () {
 		echo "$app is already running."
 		return 1
 	fi
+
 	#
 	# Save configuration if not present after installation
 	if ([ ! -f /etc/${app}.conf ] && [ -f ${rscdir}/${app}.conf ]) ; then
 		quiet install -m 644 ${rscdir}/${app}.conf /etc
-		quiet saveconfig ${app}.conf
+		quiet SaveConfig ${app}.conf
 	fi
-	#
-	# Execute pre scripts if exists
-	if [ -d ${rscdir}/preambule ] ; then
-		for pre in ${rscdir}/preambule/[0-9]_*
-		do
-			[ -x $pre ] && $pre
-		done
-	fi
+
 	#
 	# Set embedded libraries
 	if [ -d ${appdir}/Frameworks/${platform} ] ; then
 		export LD_LIBRARY_PATH=${appdir}/Frameworks/${platform}
 	fi
+
 	#
 	# Load environment variables if exists
-	if [ -f $rscdir/environ ] ; then
-		. $rscdir/environ
-	fi
+	[ -f $rscdir/environ ] && $rscdir/environ
+
+
 	#
-	# Running $app with high priority
-	if [ -x /usr/sbin/rtprio ] ; then
-		RTPRIO="/usr/sbin/rtprio 0"
-	fi
-	if [ -x $app_run ] ; then
-		$RTPRIO $app_run
-	else
-		$RTPRIO $app_bin
-	fi
-	#
-	# Execute post scripts after running (e.g ramdisk for soundfiles)
-	if [ -d ${rscdir}/preambule ] ; then
-		for post in ${rscdir}/postambule/[0-9][0-9]_*
-		do
-			[ -x $post ] && $post
-		done
-	fi
+	# Start application
+	[ -x $apprun ] && $apprun start || $appbin
 }
 
 app_stop () {
@@ -95,19 +65,21 @@ app_stop () {
 		echo "$app is already stopped."
 		return 0
 	fi
+	
+	#
+	# Stop application
+	[ -x $apprun ] && $apprun stop
+
+	#
+	# Kill remaining processes
 	for p in $pid 
 	do
 		kill $p
 	done
+
 	#
-	# Execute cleaning scripts if exists
-	if [ -d ${rscdir}/postambule ] ; then
-		for post in ${rscdir}/postambule/[0-9][0-9]_*
-		do
-			[ -x $post ] && $post
-		done
-	fi
-	quiet saveconfig ${app}.conf
+	# Save configuration
+	quiet SaveConfig ${app}.conf
 	sleep 1
 }
 

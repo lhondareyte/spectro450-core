@@ -2,7 +2,7 @@
 #
 # This file is part of the Spectro450 Project.
 #
-# Copyright (c)2016-2022,  Luc Hondareyte
+# Copyright (c)2016-2022, Luc Hondareyte
 #
 
 PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin"
@@ -13,27 +13,29 @@ export appRoot="/Applications"
 export libRoot="/Library"
 export conf="/etc/spectro450.conf"
 export media="/media/usb"
-export log="/tmp/$(basename $0).log"
+export flatname="$(echo $app | tr '[A-Z]' '[a-z]')"
 
 export appdir="${appRoot}/${app}"
-export appbin="${ctndir}/$(echo $app | tr '[A-Z]' '[a-z]')"
-export apprun="${appdir}/$(echo $app | tr '[A-Z]' '[a-z]')"
 export ctndir="${appdir}/Contents/${platform}"
+export appbin="${ctndir}/${flatname}"
+export apprun="${appdir}/${flatname}"
 export dialog="${libexec}/dialog"
 export libdir="${libRoot}/${app}"
 export rscdir="${appdir}/Resources"
+export log="/tmp/${flatname}.log"
 
 export PATH="${appdir}:${libexec}:$PATH"
 
-[ ! -f $conf ] || . $conf
+[ ! -f ${libexec}/libsql.sh ] || . ${libexec}/libsql.sh
+[ ! -f $conf ]                || . $conf
 [ ! -z $JACK ] && export JACK || export JACK="NO"
 [ ! -z $_TTY ] && export _TTY || export _TTY="/dev/console"
 [ ! -z $TERM ] && export TERM || export TERM="xterm"
 
 if [ -z $appbin ] ; then
-	pid=$(pgrep $(basename $0))
+	pid=$(pgrep $apprun)
 else
-	pid=$(pgrep $(basename $app_bin))
+	pid=$(pgrep $appbin)
 fi
 
 Log() {
