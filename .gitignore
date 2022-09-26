@@ -1,3 +1,5 @@
 README.md
 rsc/spectro450.conf
-lib/*.o
+*.o
+*.so
+*.so.*
