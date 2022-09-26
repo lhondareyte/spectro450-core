@@ -1,5 +1,9 @@
 #!/bin/sh
 #
+# This file is part of the Spectro450 Project.
+#
+# Copyright (c)2019-2022,  Luc Hondareyte
+#
 # PROVIDE: spectro450
 # BEFORE: LOGIN
 
