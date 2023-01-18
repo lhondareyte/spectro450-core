@@ -21,6 +21,7 @@ install: build
 	$(INSTALL) -m 555 lib/libspectro.so $(INSTALLDIR)/lib
 	$(INSTALL) -m 555 rc.d/$(PKG) $(INSTALLDIR)/etc/rc.d
 	$(INSTALL) -m 555 libexec/libapp.sh $(INSTALLDIR)/libexec/$(PKG)
+	$(INSTALL) -m 555 libexec/libsql.sh $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/firstboot $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/pkgmgt $(INSTALLDIR)/libexec/$(PKG)
 	$(INSTALL) -m 555 libexec/midimgt $(INSTALLDIR)/libexec/$(PKG)
